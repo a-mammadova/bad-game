@@ -4,22 +4,23 @@ function enemy()
 		sprite = love.graphics.newImage("gfx/red-2.png"),
 		level = 1,
 		x = math.random(1, 18) * 80,
-		y= math.random(1, 15)* 80,
+		y= math.random(1, 15) * 80,
 		w = 151,
 		h = 100,
+		speed = math.random (3, 5) * 40,
 
 		move = function(self, charx, chary)
 			
 			if charx - self.x > 0 then
-				self.x = self.x + self.level/1.7
+				self.x = self.x + self.speed
 			elseif charx - self.x < 0 then
-				self.x = self.x - self.level/1.7
+				self.x = self.x - self.speed
 			end
 
 			if chary - self.y > 0 then
-				self.y = self.y + self.level/1.7
+				self.y = self.y + self.speed
 			elseif chary - self.y < 0 then
-				self.y = self.y - self.level/1.7
+				self.y = self.y - self.speed
 			end
 		end,
 
