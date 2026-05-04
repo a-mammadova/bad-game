@@ -27,7 +27,8 @@ function button(text, func, param, width, height)
 			end
 
 			love.graphics.setColor(0, 0, 0)
-			love.graphics.rectangle("fill", self.buttonx + 7, self.buttony + 7, self.width, self.height )
+			love.graphics.rectangle("fill", self.buttonx - 5, self.buttony - 5,
+			 self.width + 10, self.height + 10)
 
 			if self:hovering(mouse_x, mouse_y) then
 				love.graphics.setColor(250/255, 50/255, 80/255)

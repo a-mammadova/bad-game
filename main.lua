@@ -11,7 +11,7 @@ char = {
 
 gate = {
 	x = 1150, y = 1170,
-	width = 300, height = 50,
+	w = 300, h = 50,
 }
 
 local buttons = {
@@ -27,78 +27,67 @@ game = {
 		menu = true,
 		paused = false,
 		running = false,
-		ended = false
+		ended = false,
+		won = false,
 	}
 }
 
-carrots, enemies, time = {}, {}, 0
+levels = {
+	[1] = {carrot_req = 5, enemy_count = 1, target_score = 40, },
+	[2] = {carrot_req = 2, enemy_count = 2, target_score = 80, },
+	[3] = {carrot_req = 2, enemy_count = 1, target_score = 120, },
+}
+carrots, enemies, time, eaten_carrots, score = {}, {}, 0, 0, 0
+
+final_level = #levels
 
 function changeState(state)
 	game.state["running"] = state == "running"
 	game.state["menu"] = state == "menu"
 	game.state["ended"] = state == "ended"
 	game.state["paused"] = state == "paused"
+	game.state["won"] = state == "won"
 end
 
-score = 0
+function reachedGate()
+	return char.x < gate.x + gate.w and
+	      char.x + char.width > gate.x and
+	      char.y < gate.y + gate.h and
+	      char.y + char.height > gate.y
+end
 
 function resetGame()
 
 	char.x, char.y, heart = 100, 100, 3
 	carrots, enemies, time = {}, {}, 0
-
-	score, started = 0, false
+	started = false
 
 	table.insert(carrots, 1, carrot())
 	table.insert(enemies, enemy())
 end
+last_second = 0
 
-function love.load()
-	hit_timer = 0
-	heart = 3
-	run_bg = love.graphics.newImage("gfx/game-2.png")
-	menu_bg = love.graphics.newImage("gfx/menu-2.png")
-	char.sprite = love.graphics.newImage("gfx/blue-2.png")
-	heart_pic = love.graphics.newImage("gfx/heart.png")
-	over_bg = love.graphics.newImage("gfx/over.png")
+function loadLevel(level) 
+	eaten_carrots, started = 0, false
+	carrots, enemies, heart = {}, {}, 3
+	char.x, char.y = 100, 100
 
-	font, font2 = love.graphics.newFont(40), love.graphics.newFont(70)
-	font3 = love.graphics.newFont(100)
-
-	buttons.menu_state.play = button("PLAY", nil, nil, 150, 80)
-	buttons.menu_state.settings = button("SETTINGS", nil, nil, 230, 80)
-	buttons.menu_state.exit = button("EXIT", nil , nil, 150, 80)
-	buttons.run_state.pause = button("II", nil, nil, 75, 80)
-	buttons.pause_state.continue = button("CONTINUE", nil, nil, 250, 80)
-	buttons.pause_state.replay = button("REPLAY", nil, nil, 190, 80)
-	buttons.end_state.restart = button("RESTART", nil, nil, 220, 80)
-	buttons.end_state.menu = button("MENU", nil, nil, 170, 80)
-
-	table.insert(enemies, 1, enemy())
-	table.insert(carrots, 1, carrot())
-end
-
-function love.update(dt)
-
-	time = time + dt
-
-	hit_timer = hit_timer - dt
-
-	mouse_x, mouse_y = love.mouse.getPosition()
-
-	currentSecond = math.floor(time)
-
-	if started == true and currentSecond ~= lastSecond and game.state["running"] then
-		lastSecond = currentSecond
-
-    	if currentSecond % 1 == 0 then
-       		score = score + 1
-   		end
+	for i = 1, levels[level].carrot_req do
+		table.insert(carrots, carrot())
 	end
 
-	function love.mousepressed(x, y, button)
+	for i = 1, levels[level].enemy_count do
+		table.insert(enemies, enemy())
+	end
+end
+
+current_level = 1
+
+function love.mousepressed(x, y, button)
 	 if button == 1 then
         if buttons.menu_state.play:hovering(x, y) then
+        		current_level = 1
+        		loadLevel(current_level)
             changeState("running")
         end
 
@@ -117,10 +106,57 @@ function love.update(dt)
         end
 
         if buttons.end_state.menu:hovering(x, y) then
+        	resetGame()
         	changeState("menu")
         end
     end
+   end
+
+function love.load()
+
+	hit_timer, heart = 0, 3
+	run_bg = love.graphics.newImage("gfx/game-2.png")
+	menu_bg = love.graphics.newImage("gfx/menu-2.png")
+	char.sprite = love.graphics.newImage("gfx/blue-2.png")
+	heart_pic = love.graphics.newImage("gfx/heart.png")
+	over_bg = love.graphics.newImage("gfx/over.png")
+
+	a = "font-13.ttf"
+	font = love.graphics.newFont(a, 50)
+	font2 = love.graphics.newFont(a, 80)
+	font3 = love.graphics.newFont(a, 110)
+
+	buttons.menu_state.play = button("PLAY", nil, nil, 150, 90)
+	buttons.menu_state.settings = button("SETTINGS", nil, nil, 249, 90)
+	buttons.menu_state.exit = button("EXIT", nil , nil, 140, 90)
+	buttons.run_state.pause = button("II", nil, nil, 70, 90)
+	buttons.pause_state.continue = button("CONTINUE", nil, nil, 250, 80)
+	buttons.pause_state.replay = button("REPLAY", nil, nil, 190, 80)
+	buttons.end_state.restart = button("RESTART", nil, nil, 230, 90)
+	buttons.end_state.menu = button("MENU", nil, nil, 170, 90)
+
+	table.insert(enemies, 1, enemy())
+	table.insert(carrots, 1, carrot())
 end
+
+function love.update(dt)
+
+	time, hit_timer = time + dt, hit_timer - dt
+
+	mouse_x, mouse_y = love.mouse.getPosition()
+
+	current_second = math.floor(time)
+
+	if started == true and current_second ~= last_second and game.state["running"] then
+		last_second = current_second
+
+    	if current_second % 1 == 0 then
+       		score = score + 1
+   		end
+	end
+
+	
+
 
 	-- char move
 	if game.state["running"] then
@@ -152,38 +188,48 @@ end
 		changeState("ended")
 	end
 
+	if eaten_carrots >= levels[current_level].carrot_req and
+		score >= levels[current_level].target_score then
+			if reachedGate() then
+				current_level = current_level + 1
+	  			loadLevel(current_level)
+	  		end
+	end
+
 end
 
 function love.draw()	
-
-	love.graphics.setFont(font)
 
 	-- RUNNING
 	if game.state["running"] then
 		
 		love.graphics.draw(run_bg, 0, 0)
-		love.graphics.printf("FPS:" .. love.timer.getFPS(), 10, 1080, 200, "justify")
+		love.graphics.printf("FPS:" .. love.timer.getFPS(), 10, 1080, 200, "left")
 
 		--SCORE
-		love.graphics.setColor(120/255, 34/255, 100/255)
-		love.graphics.rectangle("fill", 600, 30, 300, 50)
+		love.graphics.setColor(0, 0, 0)
+		love.graphics.rectangle("fill", 820, 15, 310, 75 )
+		love.graphics.setColor(199/255, 49/255, 117/255)
+		love.graphics.rectangle("fill", 825, 20, 300, 65)
+		love.graphics.setColor(0, 0, 0)
+		love.graphics.printf("SCORE: " ..score, 800, 25, 300, "center")
 		love.graphics.setColor(1, 1, 1)
-		love.graphics.printf("SCORE: " ..score, 600, 30, 300, "center")
 
 		--GATE
 		love.graphics.setColor(0, 0, 0)
 		love.graphics.rectangle("fill", gate.x - 10, gate.y - 10,
-		 gate.width + 20, gate.height + 10)
+		 gate.w + 20, gate.h + 10)
 		love.graphics.setColor(139/255, 69/255, 19/255)
-		love.graphics.rectangle("fill", gate.x, gate.y, gate.width, gate.height)
+		love.graphics.rectangle("fill", gate.x, gate.y, gate.w, gate.h)
 		love.graphics.setColor(0, 0, 0)
-		love.graphics.circle("line", gate.x + gate.width / 2, gate.y + gate.height / 3, 6)
+		love.graphics.circle("line", gate.x + gate.w / 2, gate.y + gate.h / 3, 6)
 		love.graphics.setColor(1, 1, 1)
 
 		--HEART
 		for i = 1, heart do
 			love.graphics.draw(heart_pic, 80*i, 15)
 		end
+
 		buttons.run_state.pause:draw(1400, 30, 200, 400)
 		love.graphics.setColor(1, 1, 1)
 
@@ -199,7 +245,7 @@ function love.draw()
 			if carrots[i]:eaten(char.x, char.y, char.width, char.height) then
 				score = score + 10
 				table.remove(carrots, i)
-				table.insert(carrots, 1, carrot())
+				eaten_carrots = eaten_carrots + 1
 			end
 		end
 
@@ -225,12 +271,20 @@ function love.draw()
 			enemies[i]:draw()
 		end
 
+		love.graphics.setColor(0, 0, 0)
+		love.graphics.rectangle("fill", 365, 15, 310, 75 )
+		love.graphics.setColor(199/255, 49/255, 117/255)
+		love.graphics.rectangle("fill", 370, 20, 300, 65)
+		love.graphics.setColor(0, 0, 0)
+		love.graphics.printf("LEVEL: " ..current_level, 335, 25, 300, "center")
+		love.graphics.setColor(1, 1, 1)
+
 	end
 
 	if game.state["ended"] then
 		love.graphics.setColor(1, 1, 1, 1)
 		love.graphics.draw(over_bg, 0, 0)
-		love.graphics.setColor(1, 0, 0)
+		love.graphics.setColor(1, 1, 1)
 		love.graphics.setFont(font)
 		love.graphics.printf("SCORE: "..score, 450, 200, 600, "center")
 
@@ -238,7 +292,20 @@ function love.draw()
 		if score <= 0 then
 			love.graphics.printf(score .."? seriously? bruh.", 300, 280, 900, "center"  )
 		end
-		if score < 100 and score > 0 then
+
+		if score <= 20 and score >= 0 then
+			love.graphics.printf("tragic", 300, 280, 900, "center")
+		end
+
+		if score > 20 and score <= 40 then
+			love.graphics.printf("meh", 300, 280, 900, "center")
+		end
+
+		if score > 40 and score <= 60 then
+			love.graphics.printf("decent", 300, 280, 900, "center")
+		end
+
+		if score < 100 and score > 60 then
 			love.graphics.printf("mediocre", 300, 280, 900, "center"  )
 		end
 
@@ -265,5 +332,10 @@ function love.draw()
 		buttons.menu_state.play:draw(650, 400, 200, 400)
 		buttons.menu_state.settings:draw(615, 550, 300, 400)
 		buttons.menu_state.exit:draw(650, 700, 200, 400)
+	end
+
+	if game.state["won"] then
+		love.graphics.setFont(font3)
+		love.graphics.printf("YOU WON!", 300, 480, 900, "center")
 	end
 end
