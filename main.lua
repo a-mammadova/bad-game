@@ -40,6 +40,7 @@ levels = {
 
 level_text = ""
 level_text_timer = 0
+sound_played = false
 
 carrots, enemies, time, eaten_carrots, score = {}, {}, 0, 0, 0
 
@@ -130,6 +131,11 @@ function love.load()
 	heart_pic = love.graphics.newImage("gfx/heart.png")
 	over_bg = love.graphics.newImage("gfx/over.png")
 
+	eat_sound = love.audio.newSource("sfx/eat-carrot.mp3", "static")
+	lost_heart_sound = love.audio.newSource("sfx/lost-heart.wav", "static")
+	game_over_sound = love.audio.newSource("sfx/game-over.mp3", "static")
+	night_sound = love.audio.newSource("sfx/night.mp3", "static")
+
 	a = "fonts/font-13.ttf"
 	font = love.graphics.newFont(a, 50)
 	font2 = love.graphics.newFont(a, 80)
@@ -168,9 +174,6 @@ function love.update(dt)
    		end
 	end
 
-	
-
-
 	-- char move
 	if game.state["running"] then
 		if love.keyboard.isDown("w") or love.keyboard.isDown("up") then
@@ -185,6 +188,18 @@ function love.update(dt)
 		if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
 			char.x = char.x + char.speed*dt
 		end
+
+		if char.x > 1500 then
+			char.x = 0
+		elseif char.x < 0 then
+    		char.x = 1500
+		end
+
+		if char.y > 1200 then
+ 		   char.y = 0
+		elseif char.y < 0 then
+   		char.y = 1200
+end
 	end
 
 	-- enemies de move 
@@ -199,6 +214,11 @@ function love.update(dt)
 
 	if score < 0 or heart == 0 then
 		changeState("ended")
+
+		if not sound_played then
+			love.audio.play(game_over_sound)
+			sound_played = true
+		end
 	end
 
 	if eaten_carrots >= levels[current_level].carrot_req and
@@ -256,6 +276,7 @@ function love.draw()
 
 		for i = #carrots, 1, -1 do
 			if carrots[i]:eaten(char.x, char.y, char.width, char.height) then
+				love.audio.play(eat_sound)
 				score = score + 10
 				table.remove(carrots, i)
 				eaten_carrots = eaten_carrots + 1
@@ -267,6 +288,7 @@ function love.draw()
 		for i = 1, #enemies do
 			if enemies[i]:hit(char.x, char.y, char.width, char.height) and hit_timer <= 0 then 
 				heart = heart - 1
+				love.audio.play(lost_heart_sound) --WILL BE CHANGED !!!!
 				score = score - 20
 				hit_timer = 1
 			end
