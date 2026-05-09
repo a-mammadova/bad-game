@@ -12,15 +12,15 @@ function enemy()
 		move = function(self, charx, chary)
 			
 			if charx - self.x > 0 then
-				self.x = self.x + self.level/1.7
+				self.x = self.x + self.level/1.4
 			elseif charx - self.x < 0 then
-				self.x = self.x - self.level/1.7
+				self.x = self.x - self.level/1.4
 			end
 
 			if chary - self.y > 0 then
-				self.y = self.y + self.level/1.7
+				self.y = self.y + self.level/1.4
 			elseif chary - self.y < 0 then
-				self.y = self.y - self.level/1.7
+				self.y = self.y - self.level/1.4
 			end
 		end,
 
