@@ -7,20 +7,20 @@ function enemy()
 		y= math.random(1, 15) * 80,
 		w = 151,
 		h = 100,
-		speed = math.random (3, 5) * 40,
+		speed = math.random (6, 9) * 20,
 
-		move = function(self, charx, chary)
+		move = function(self, charx, chary, dt)
 			
 			if charx - self.x > 0 then
-				self.x = self.x + self.level/1.4
+				self.x = self.x + self.speed * dt
 			elseif charx - self.x < 0 then
-				self.x = self.x - self.level/1.4
+				self.x = self.x - self.speed * dt
 			end
 
 			if chary - self.y > 0 then
-				self.y = self.y + self.level/1.4
+				self.y = self.y + self.speed * dt
 			elseif chary - self.y < 0 then
-				self.y = self.y - self.level/1.4
+				self.y = self.y - self.speed * dt
 			end
 		end,
 

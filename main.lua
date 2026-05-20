@@ -6,7 +6,9 @@ math.randomseed(os.time())
 char = {
 	height = 209, width = 225,
 	x = 110, y = 110,
-	speed = 200,
+	speed = 220,
+
+	kb_x = 0, kb_y = 0,
 }
 
 gate = {
@@ -32,10 +34,16 @@ game = {
 	}
 }
 
+camera = {
+	x = 0, y = 0,
+	shake_time = 0, shake_intensity = 0,
+	offset_x = 0, offset_y = 0,
+}
+
 levels = {
 	[1] = {carrot_req = 3, enemy_count = 1, target_score = 40, },
-	[2] = {carrot_req = 2, enemy_count = 2, target_score = 80, },
-	[3] = {carrot_req = 2, enemy_count = 2, target_score = 120, },
+	[2] = {carrot_req = 4, enemy_count = 2, target_score = 80, },
+	[3] = {carrot_req = 5, enemy_count = 2, target_score = 120, },
 }
 
 level_text = ""
@@ -66,6 +74,9 @@ function resetGame()
 	char.x = 115
 	char.y = 115
 
+	char.kb_x = 0
+	char.kb_y = 0
+
 	heart = 3
 	score = 0
 	time = 0
@@ -73,18 +84,29 @@ function resetGame()
 	eaten_carrots = 0
 	sound_played = false
 	started = false
+	death_started = false
 
 	carrots = {}
 	enemies = {}
 
 	current_level = 1
 	loadLevel(current_level)
+
 end
+
 last_second = 0
+
+function shake(time, intensity)
+
+	camera.shake_time = time
+	camera.shake_intensity = intensity
+end
 
 function loadLevel(level) 
 	eaten_carrots, started = 0, false
 	carrots, enemies, heart = {}, {}, 3
+	char.kb_x = 0
+	char.kb_y = 0
 
 	level_text = "collect "..levels[level].carrot_req..
              " carrots & reach "..levels[level].target_score.." score"
@@ -139,11 +161,14 @@ end
 function love.load()
 
 	hit_timer, heart = 0, 3
-	run_bg = love.graphics.newImage("gfx/game-2.png")
+	run_bg = love.graphics.newImage("gfx/game-4.png") -- game-2.png
 	menu_bg = love.graphics.newImage("gfx/menu-2.png")
 	char.sprite = love.graphics.newImage("gfx/blue-2.png")
 	heart_pic = love.graphics.newImage("gfx/heart.png")
 	over_bg = love.graphics.newImage("gfx/over.png")
+
+	world_w = run_bg:getWidth()
+	world_h = run_bg:getHeight()
 
 	eat_sound = love.audio.newSource("sfx/eat-carrot.mp3", "static")
 	lost_heart_sound = love.audio.newSource("sfx/lost-heart-2.mp3", "static") -- or lost-heart.wav
@@ -151,6 +176,11 @@ function love.load()
 	night_sound = love.audio.newSource("sfx/night.mp3", "static")
 	gate_unlock_sound = love.audio.newSource("sfx/gate-unlock.mp3", "static")
 	gate_lock_sound = love.audio.newSource("sfx/gate-lock.mp3", "static")
+	dash_sound = love.audio.newSource("sfx/dash-1.mp3", "static") -- or dash-2.mp3
+	kb_sound = love.audio.newSource("sfx/knockback.mp3", "static")
+
+	love.audio.setVolume(0.2)
+
 
 	a = "fonts/font-12.ttf"
 	font1 = love.graphics.newFont(a, 40)
@@ -173,6 +203,25 @@ end
 
 function love.update(dt)
 
+	
+
+	camera.x = char.x + char.width/2 - 750
+	camera.y = char.y + char.height/2 - 550
+
+	camera.x = math.max(0, math.min(camera.x, world_w - 1500))
+
+	camera.y = math.max(0, math.min(camera.y, world_h - 1100))
+
+	if camera.shake_time > 0 then
+		camera.shake_time = camera.shake_time - dt
+
+		camera.offset_x = love.math.random(-camera.shake_intensity, camera.shake_intensity)
+		camera.offset_y = love.math.random(-camera.shake_intensity, camera.shake_intensity )
+	else
+		camera.offset_x = 0
+		camera.offset_y = 0
+	end
+
 	if level_text_timer > 0 then
 		level_text_timer = level_text_timer - dt
 	end
@@ -191,22 +240,45 @@ function love.update(dt)
    		end
 	end
 
+	char.x = char.x + char.kb_x * dt
+	char.y = char.y + char.kb_y * dt
+
+	char.kb_x = char.kb_x * (1 - 8 * dt)
+	char.kb_y = char.kb_y * (1 - 8 * dt)
+
 	-- char move
 	if game.state["running"] then
 		if love.keyboard.isDown("w") or love.keyboard.isDown("up") then
-			char.y = char.y - char.speed*dt
+			char.y = char.y - char.speed * dt
+			if love.keyboard.isDown("space") then
+				love.audio.play(dash_sound)
+				char.y = char.y - 5 * char.speed * dt
+			end
 		end
 		if love.keyboard.isDown("s") or love.keyboard.isDown("down") then
 			char.y = char.y + char.speed*dt
+			if love.keyboard.isDown("space") then
+				love.audio.play(dash_sound)
+				char.y = char.y + 5 * char.speed * dt
+			end
 		end
 		if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
-			char.x = char.x - char.speed*dt
+			char.x = char.x - char.speed * dt
+			if love.keyboard.isDown("space") then
+				love.audio.play(dash_sound)
+				char.x = char.x - 5 * char.speed * dt
+			end
 		end
 		if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
-			char.x = char.x + char.speed*dt
+			char.x = char.x + char.speed * dt
+			if love.keyboard.isDown("space") then
+				love.audio.play(dash_sound)
+				char.x = char.x + 5 * char.speed * dt
+			end
+
 		end
 			
-		--border thingy
+		--[[ border thingy
 		if char.x > 1500 then
 			char.x = 0
 		elseif char.x < 0 then
@@ -216,26 +288,33 @@ function love.update(dt)
  		   char.y = 110
 		elseif char.y <= 110 then
    		char.y = 1200
-		end
+		end ]]--
 	end
 
 	-- enemies de move 
 	if game.state["running"] then
 		for i = 1, #enemies do
 			if math.abs(char.x - 115) > 5 or math.abs(char.y - 115) > 5 then
-					enemies[i]:move(char.x, char.y)
+					enemies[i]:move(char.x, char.y, dt)
 					started = true
 			end
 		end
 	end
 
-	if game.state["running"] and score < 0 or heart == 0 then
-		changeState("ended")
-
-		if not sound_played then
-			love.audio.play(game_over_sound)
-			sound_played = true
+	if game.state["running"] and score < 0 or heart <= 0 then
+		if not death_started then
+			death_started = true
+			shake(1, 10)
+			if not sound_played then
+				love.audio.play(game_over_sound)
+				sound_played = true
+			end
 		end
+		if death_started == true and camera.shake_time < 0 then
+			changeState("ended")
+			death_started = false
+		end
+
 	end
 
 
@@ -254,34 +333,62 @@ function love.update(dt)
 	  	end
 	end
 
+	for i = #carrots, 1, -1 do
+		if carrots[i]:eaten(char.x, char.y, char.width, char.height) then
+			heart = heart + carrots[i].heart
+			love.audio.play(eat_sound)
+			score = score + carrots[i].score
+			table.remove(carrots, i)
+			eaten_carrots = eaten_carrots + 1
+		end
+	end
+
+	for i = 1, #enemies do
+		if enemies[i]:hit(char.x, char.y, char.width, char.height) and hit_timer <= 0 then
+
+			love.audio.play(kb_sound)
+
+			dx = char.x - enemies[i].x
+			dy = char.y - enemies[i].y
+
+			kb_power = 900
+			dist = math.sqrt(dx * dx + dy * dy)
+
+			if dist > 0 then
+				char.kb_x = (dx / dist) * kb_power
+				char.kb_y = (dy / dist) * kb_power
+			end
+
+			heart = heart - 1
+			love.audio.play(lost_heart_sound) -- WILL BE CHANGED !!!!
+			score = score - 3
+			hit_timer = 1
+		end
+	end
+
 end
 
 function love.draw()	
+
+	love.graphics.push()
+
+   love.graphics.translate(-camera.x + camera.offset_x, -camera.y + camera.offset_y)
+
 
 	-- RUNNING
 	if game.state["running"] then
 		
 		love.graphics.draw(run_bg, 0, 0)
-		love.graphics.printf("FPS:" .. love.timer.getFPS(), 10, 1080, 200, "left")
 
-		--TOPBAR THINGY
-		love.graphics.setColor(0, 0, 0)
-		love.graphics.rectangle("line", -2, -5, 1504, 114, 20, 20)
-		love.graphics.setColor(33/255, 12/255, 66/255, 0.7)
-		love.graphics.rectangle("fill", 0, 0, 1500, 110, 20, 20)
-		love.graphics.setColor(1, 1, 1)
+		-- KINDA ANIMATE IG
+		offset_y = math.sin(time * 3) * 10 
+		love.graphics.draw(char.sprite, char.x, char.y + offset_y)
 
-		--SCORE
-		love.graphics.setColor(0, 0, 0)
-		love.graphics.rectangle("fill", 1100, 20, 230, 75, 20, 20)
-		love.graphics.setColor(199/255, 49/255, 117/255)
-		love.graphics.rectangle("fill", 1105, 25, 220, 65, 20, 20)
-		love.graphics.setColor(0, 0, 0)
-		love.graphics.setFont(font2)
-		love.graphics.printf("score: " ..score, 1110, 30, 300, "left")
-		love.graphics.setColor(1, 1, 1)
+		for i = 1, #carrots do
+			carrots[i]:draw(time)
+		end
 
-		--GATE
+		-- GATE
 		love.graphics.setColor(0, 0, 0)
 		love.graphics.rectangle("fill", gate.x - 10, gate.y - 10,
 		 gate.w + 20, gate.h + 10, 20, 20)
@@ -291,42 +398,16 @@ function love.draw()
 		love.graphics.circle("line", gate.x + gate.w / 2, gate.y + gate.h / 3, 6)
 		love.graphics.setColor(1, 1, 1)
 
-		--HEART
-		for i = 1, heart do
-			love.graphics.draw(heart_pic, 70*i, 25)
-		end
-
-		buttons.run_state.pause:draw(1400, 10, 200, 400)
-		love.graphics.setColor(1, 1, 1)
-
-		--KINDA ANIMATE IG
-		offset_y = math.sin(time * 3) * 10 
-		love.graphics.push()
-		love.graphics.draw(char.sprite, char.x, char.y + offset_y)
-
-		for i = 1, #carrots do
-			carrots[i]:draw(time)
-		end
-
-		for i = #carrots, 1, -1 do
-			if carrots[i]:eaten(char.x, char.y, char.width, char.height) then
-				love.audio.play(eat_sound)
-				score = score + 10
-				table.remove(carrots, i)
-				eaten_carrots = eaten_carrots + 1
-			end
-		end
-
-		love.graphics.pop()
 
 		for i = 1, #enemies do
-			if enemies[i]:hit(char.x, char.y, char.width, char.height) and hit_timer <= 0 then 
-				heart = heart - 1
-				love.audio.play(lost_heart_sound) --WILL BE CHANGED !!!!
-				score = score - 10
-				hit_timer = 1
-			end
+			enemies[i]:draw()
 		end
+
+	end
+
+	love.graphics.pop()
+
+	if game.state["running"] then
 
 		if hit_timer > 0 then
 			love.graphics.setColor(1, 0, 0, 0.15)
@@ -334,13 +415,32 @@ function love.draw()
 		else
 			love.graphics.setColor(1, 1, 1)
 		end
+		-- TOPBAR THINGY
+		love.graphics.setColor(0, 0, 0)
+		love.graphics.rectangle("line", -2, -5, 1504, 114, 20, 20)
+		love.graphics.setColor(33/255, 12/255, 66/255, 0.7)
+		love.graphics.rectangle("fill", 0, 0, 1500, 110, 20, 20)
+		love.graphics.setColor(1, 1, 1)
 
+		-- SCORE
+		love.graphics.setColor(0, 0, 0)
+		love.graphics.rectangle("fill", 1100, 20, 230, 75, 20, 20)
+		love.graphics.setColor(199/255, 49/255, 117/255)
+		love.graphics.rectangle("fill", 1105, 25, 220, 65, 20, 20)
+		love.graphics.setColor(0, 0, 0)
+		love.graphics.setFont(font2)
+		love.graphics.printf("score: " ..score, 1110, 30, 300, "left")
+		love.graphics.setColor(1, 1, 1)
 
-		for i = 1, #enemies do
-			enemies[i]:draw()
+		-- HEART
+		for i = 1, heart do
+			love.graphics.draw(heart_pic, 70*i, 25)
 		end
 
-		--LEVEL
+		buttons.run_state.pause:draw(1400, 10, 200, 400)
+		love.graphics.setColor(1, 1, 1)
+
+		-- LEVEL
 		love.graphics.setColor(0, 0, 0)
 		love.graphics.rectangle("fill", 305, 20, 220, 75, 20, 20)
 		love.graphics.setColor(199/255, 49/255, 117/255)
@@ -358,7 +458,6 @@ function love.draw()
     		love.graphics.printf(level_text, 400, 220, 700, "center")
     		love.graphics.setColor(1, 1, 1)
 		end
-
 	end
 
 	if game.state["ended"] then
@@ -408,6 +507,7 @@ function love.draw()
 	if game.state["paused"] then
 		buttons.pause_state.continue:draw(635, 520, 300, 380)	
 		buttons.pause_state.replay:draw(660, 400, 300, 400)
+		buttons.end_state.menu:draw(665, 640, 200, 400)
 	end
 
 	if game.state["menu"] then
@@ -428,5 +528,9 @@ function love.draw()
 	if game.state["settings"] then
 		-- add sfx on off
 		-- add ctrls
+		love.graphics.setFont(font3)
+		love.graphics.setColor(1, 1, 1)
+		love.graphics.printf("sound: ", 400, 400, 600, "center")
 	end
+
 end
