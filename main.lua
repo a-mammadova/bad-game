@@ -5,7 +5,7 @@ math.randomseed(os.time())
 
 char = {
 	height = 209, width = 225,
-	x = 110, y = 110,
+	x = 800, y = 800,
 	speed = 220,
 
 	kb_x = 0, kb_y = 0,
@@ -34,6 +34,12 @@ game = {
 	}
 }
 
+blocks = {
+	{x = 180, y = 200, w = 600, h = 340},
+	{x = 120, y = 1400, w = 330, h = 320},
+	{x = 2050, y = 150, w = 250, h = 200},
+}
+
 camera = {
 	x = 0, y = 0,
 	shake_time = 0, shake_intensity = 0,
@@ -41,9 +47,10 @@ camera = {
 }
 
 levels = {
-	[1] = {carrot_req = 3, enemy_count = 1, target_score = 40, },
-	[2] = {carrot_req = 4, enemy_count = 2, target_score = 80, },
-	[3] = {carrot_req = 5, enemy_count = 2, target_score = 120, },
+	[1] = {carrot_req = 5, enemy_count = 1, target_score = 40, },
+	[2] = {carrot_req = 6, enemy_count = 2, target_score = 80, },
+	[3] = {carrot_req = 7, enemy_count = 3, target_score = 120, },
+	[4] = {carrot_req = 10, enemy_count = 5, target_score = 180,},
 }
 
 level_text = ""
@@ -71,8 +78,8 @@ function reachedGate()
 end
 
 function resetGame()
-	char.x = 115
-	char.y = 115
+	char.x = 800
+	char.y = 800
 
 	char.kb_x = 0
 	char.kb_y = 0
@@ -112,7 +119,7 @@ function loadLevel(level)
              " carrots & reach "..levels[level].target_score.." score"
 
 	level_text_timer = 3
-	char.x, char.y = 115, 115
+	char.x, char.y = 800, 800
 
 	for i = 1, levels[level].carrot_req do
 		table.insert(carrots, carrot())
@@ -121,6 +128,11 @@ function loadLevel(level)
 	for i = 1, levels[level].enemy_count do
 		table.insert(enemies, enemy())
 	end
+end
+
+function collision(x1, y1, w1, h1, x2, y2, w2, h2)
+    return x1 < x2 + w2 and x1 + w1 > x2 and
+           y1 < y2 + h2 and y1 + h1 > y2
 end
 
 current_level = 1
@@ -156,6 +168,15 @@ function love.mousepressed(x, y, button)
         	changeState("menu")
       end
    end
+end
+
+function canMove(x, y)
+   for i, block in ipairs(blocks) do
+      if collision(x, y, char.width, char.height, block.x, block.y, block.w, block.h) then
+         return false
+      end
+   end
+   return true
 end
 
 function love.load()
@@ -246,7 +267,7 @@ function love.update(dt)
 	char.kb_x = char.kb_x * (1 - 8 * dt)
 	char.kb_y = char.kb_y * (1 - 8 * dt)
 
-	-- char move
+	--[[char move
 	if game.state["running"] then
 		if love.keyboard.isDown("w") or love.keyboard.isDown("up") then
 			char.y = char.y - char.speed * dt
@@ -276,19 +297,58 @@ function love.update(dt)
 				char.x = char.x + 5 * char.speed * dt
 			end
 
+		end --]]
+
+
+	if game.state["running"] then
+   	dx, dy = 0, 0
+
+    	if love.keyboard.isDown("a") then 
+    		dx = dx - 1 
+    		--[[if love.keyboard.isDown("space") then
+				love.audio.play(dash_sound)
+				newX = char.x - 5 * char.speed * dt
+			end--]]
+    	end
+    	if love.keyboard.isDown("d") then 
+    		dx = dx + 1 
+    		--[[if love.keyboard.isDown("space") then
+				love.audio.play(dash_sound)
+				newX = char.x + 5 * char.speed * dt
+			end]]--
+    	end
+    	if love.keyboard.isDown("w") then 
+    		dy = dy - 1 
+    		--[[if love.keyboard.isDown("space") then
+				love.audio.play(dash_sound)
+    			newY = char.y - dy * char.speed * 5 * dt
+			end --]]
+    	end
+    	if love.keyboard.isDown("s") then 
+    		dy = dy + 1
+    		--[[if love.keyboard.isDown("space") then
+				love.audio.play(dash_sound)
+    			newY = char.y - dy * char.speed * 5 * dt
+			end --]]
 		end
-			
-		--[[ border thingy
-		if char.x > 1500 then
-			char.x = 0
-		elseif char.x < 0 then
-    		char.x = 1500
-		end
-		if char.y > 1200 then
- 		   char.y = 110
-		elseif char.y <= 110 then
-   		char.y = 1200
-		end ]]--
+
+		speed = char.speed
+
+    	if love.keyboard.isDown("space") then
+        speed = speed * 6
+        love.audio.play(dash_sound)
+    	end
+
+		newX = char.x + dx * speed * dt
+    	newY = char.y + dy * speed * dt
+
+    	if canMove(newX, char.y) then
+        char.x = newX
+    	end
+
+    	if canMove(char.x, newY) then
+        char.y = newY
+    	end
 	end
 
 	-- enemies de move 
@@ -305,12 +365,12 @@ function love.update(dt)
 		if not death_started then
 			death_started = true
 			shake(1, 10)
+		end
+		if death_started == true and camera.shake_time < 0 then
 			if not sound_played then
 				love.audio.play(game_over_sound)
 				sound_played = true
 			end
-		end
-		if death_started == true and camera.shake_time < 0 then
 			changeState("ended")
 			death_started = false
 		end
@@ -351,7 +411,7 @@ function love.update(dt)
 			dx = char.x - enemies[i].x
 			dy = char.y - enemies[i].y
 
-			kb_power = 900
+			kb_power = 1200
 			dist = math.sqrt(dx * dx + dy * dy)
 
 			if dist > 0 then
@@ -402,6 +462,15 @@ function love.draw()
 		for i = 1, #enemies do
 			enemies[i]:draw()
 		end
+
+		--[[ TESTING BLOCKS
+		for i, block in ipairs(blocks) do
+			love.graphics.setColor(1, 0, 0, 0.4)
+			love.graphics.rectangle("fill", block.x, block.y, block.w, block.h)
+		end
+		love.graphics.setColor(1, 1, 1)
+
+		--]]
 
 	end
 

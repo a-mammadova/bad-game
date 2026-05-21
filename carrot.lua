@@ -39,8 +39,8 @@ function carrot(type)
 
 		h = 100,
 		w = 45,
-		x = math.random(1, 18) * 70,
-		y = math.random(1, 15) * 70,
+		x = math.random(20, 40) * 70,
+		y = math.random(20, 40) * 70,
 
 		score = cirt.score or 0,
 		heart = cirt.heart or 0,

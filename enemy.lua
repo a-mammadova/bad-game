@@ -3,11 +3,11 @@ function enemy()
 	return {
 		sprite = love.graphics.newImage("gfx/red-2.png"),
 		level = 1,
-		x = math.random(1, 18) * 80,
-		y= math.random(1, 15) * 80,
+		x = math.random(20, 40) * 80,
+		y= math.random(20, 20) * 80,
 		w = 151,
 		h = 100,
-		speed = math.random (6, 9) * 20,
+		speed = math.random (22, 35) * 20,
 
 		move = function(self, charx, chary, dt)
 			
