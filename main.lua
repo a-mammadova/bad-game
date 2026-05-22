@@ -7,7 +7,6 @@ char = {
 	height = 209, width = 225,
 	x = 800, y = 800,
 	speed = 220,
-
 	kb_x = 0, kb_y = 0,}
 
 gate = {
@@ -81,7 +80,6 @@ function resetGame()
 
 	eaten_carrots = 0
 	sound_played = false
-	started = false
 	death_started = false
 
 	carrots = {}
@@ -98,7 +96,7 @@ function shake(time, intensity)
 end
 
 function loadLevel(level) 
-	eaten_carrots, started = 0, false
+	eaten_carrots = 0
 	carrots, enemies, heart = {}, {}, 3
 	char.kb_x = 0
 	char.kb_y = 0
@@ -141,8 +139,7 @@ function love.mousepressed(x, y, button)
         	changeState("running")
       end
 
-      if buttons.pause_state.replay:hovering(x, y) or
-        buttons.end_state.restart:hovering(x, y) then
+      if buttons.pause_state.replay:hovering(x, y) or buttons.end_state.restart:hovering(x, y) then
         	resetGame()
         	changeState("running")
       end
@@ -236,7 +233,7 @@ function love.update(dt)
 	current_second = math.floor(time)
 
 	-- weird score seyi
-	if started == true and current_second ~= last_second and game.state["running"] then last_second = current_second
+	if current_second ~= last_second and game.state["running"] then last_second = current_second
     	if current_second % 1 == 0 then score = score + 1 end
 	end
 
@@ -251,6 +248,7 @@ function love.update(dt)
    if love.keyboard.isDown("d") then dx = dx + 1 end
    if love.keyboard.isDown("w") then dy = dy - 1 end
    if love.keyboard.isDown("s") then dy = dy + 1 end
+   if love.keyboard.isDown("a") then dx = dx - 1 end
 
 	speed = char.speed
 
@@ -268,48 +266,36 @@ function love.update(dt)
 	-- enemies de move 
 	if game.state["running"] then
 		for i = 1, #enemies do
-			if math.abs(char.x - 115) > 5 or math.abs(char.y - 115) > 5 then
-					enemies[i]:move(char.x, char.y, dt)
-					started = true
-			end
+			enemies[i]:move(char.x, char.y, dt)
 		end
 	end
 
+	-- death apply shake
 	if game.state["running"] and score < 0 or heart <= 0 then
-		if not death_started then
-			death_started = true
-			shake(1, 10)
-		end
+		if not death_started then death_started = true shake(1, 10) end
+
 		if death_started == true and camera.shake_time < 0 then
-			if not sound_played then
-				love.audio.play(game_over_sound)
-				sound_played = true
-			end
+			if not sound_played then love.audio.play(game_over_sound) sound_played = true end
 			changeState("ended")
 			death_started = false
 		end
-
 	end
 
-
+	-- next level check
 	if reachedGate() then
-		if eaten_carrots >= levels[current_level].carrot_req and
-		score >= levels[current_level].target_score then
+		if eaten_carrots >= levels[current_level].carrot_req and score >= levels[current_level].target_score then
 				love.audio.play(gate_unlock_sound)
 				current_level = current_level + 1
 	  			loadLevel(current_level)
-
 	  	else 
-	  		if not sound_played then
-				love.audio.play(gate_lock_sound)
-				sound_played = true
-			end
+	  		if not sound_played then love.audio.play(gate_lock_sound) sound_played = true end
 	  	end
 	end
 
+	-- all the carrot types and effects stuff will be here
 	for i = #carrots, 1, -1 do
 		if carrots[i]:eaten(char.x, char.y, char.width, char.height) then
-			heart = heart + carrots[i].heart
+			if heart + carrots[i].heart >= 5 then heart = 5 end
 			love.audio.play(eat_sound)
 			score = score + carrots[i].score
 			table.remove(carrots, i)
@@ -317,21 +303,17 @@ function love.update(dt)
 		end
 	end
 
+	-- enemy hit stuff -> kb heart score and hit timer
 	for i = 1, #enemies do
 		if enemies[i]:hit(char.x, char.y, char.width, char.height) and hit_timer <= 0 then
-
 			love.audio.play(kb_sound)
 
-			dx = char.x - enemies[i].x
-			dy = char.y - enemies[i].y
+			dx, dy = char.x - enemies[i].x, char.y - enemies[i].y
 
 			kb_power = 1200
 			dist = math.sqrt(dx * dx + dy * dy)
 
-			if dist > 0 then
-				char.kb_x = (dx / dist) * kb_power
-				char.kb_y = (dy / dist) * kb_power
-			end
+			if dist > 0 then char.kb_x = (dx / dist) * kb_power char.kb_y = (dy / dist) * kb_power end
 
 			heart = heart - 1
 			love.audio.play(lost_heart_sound) -- WILL BE CHANGED !!!!
@@ -339,19 +321,14 @@ function love.update(dt)
 			hit_timer = 1
 		end
 	end
-
 end
 
 function love.draw()	
-
 	love.graphics.push()
-
    love.graphics.translate(-camera.x + camera.offset_x, -camera.y + camera.offset_y)
 
-
 	-- RUNNING
-	if game.state["running"] then
-		
+	if game.state["running"] then	
 		love.graphics.draw(run_bg, 0, 0)
 
 		-- KINDA ANIMATE IG
@@ -364,14 +341,12 @@ function love.draw()
 
 		-- GATE
 		love.graphics.setColor(0, 0, 0)
-		love.graphics.rectangle("fill", gate.x - 10, gate.y - 10,
-		 gate.w + 20, gate.h + 10, 20, 20)
+		love.graphics.rectangle("fill", gate.x - 10, gate.y - 10, gate.w + 20, gate.h + 20, 20, 20)
 		love.graphics.setColor(139/255, 69/255, 19/255)
 		love.graphics.rectangle("fill", gate.x, gate.y, gate.w, gate.h, 20, 20)
 		love.graphics.setColor(0, 0, 0)
 		love.graphics.circle("line", gate.x + gate.w / 2, gate.y + gate.h / 3, 6)
 		love.graphics.setColor(1, 1, 1)
-
 
 		for i = 1, #enemies do
 			enemies[i]:draw()
@@ -382,26 +357,22 @@ function love.draw()
 			love.graphics.setColor(1, 0, 0, 0.4)
 			love.graphics.rectangle("fill", block.x, block.y, block.w, block.h)
 		end
-		love.graphics.setColor(1, 1, 1)
-
-		--]]
-
+		love.graphics.setColor(1, 1, 1) --]]
 	end
-
 	love.graphics.pop()
 
 	if game.state["running"] then
-
 		if hit_timer > 0 then
-			love.graphics.setColor(1, 0, 0, 0.15)
+			love.graphics.setColor(1, 0, 0, math.min(0.3 * level_text_timer, 1))
 			love.graphics.rectangle("fill", 0, 0, 1500, 1200)
 		else
 			love.graphics.setColor(1, 1, 1)
 		end
+
 		-- TOPBAR THINGY
-		love.graphics.setColor(0, 0, 0)
-		love.graphics.rectangle("line", -2, -5, 1504, 114, 20, 20)
-		love.graphics.setColor(33/255, 12/255, 66/255, 0.7)
+		--love.graphics.setColor(0, 0, 0)
+		--love.graphics.rectangle("line", -2, -5, 1504, 114, 20, 20)
+		love.graphics.setColor(33/255, 12/255, 66/255, 0.3)
 		love.graphics.rectangle("fill", 0, 0, 1500, 110, 20, 20)
 		love.graphics.setColor(1, 1, 1)
 
@@ -424,12 +395,15 @@ function love.draw()
 		love.graphics.setColor(1, 1, 1)
 
 		-- LEVEL
+		--border
 		love.graphics.setColor(0, 0, 0)
-		love.graphics.rectangle("fill", 305, 20, 220, 75, 20, 20)
+		love.graphics.rectangle("fill", 445, 20, 220, 75, 20, 20)
+		--fill
 		love.graphics.setColor(199/255, 49/255, 117/255)
-		love.graphics.rectangle("fill", 310, 25, 210, 65, 20, 20)
+		love.graphics.rectangle("fill", 450, 25, 210, 65, 20, 20)
+		--text
 		love.graphics.setColor(0, 0, 0)
-		love.graphics.printf("level: " ..current_level, 315, 30, 300, "left")
+		love.graphics.printf("level: " ..current_level, 455, 30, 300, "left")
 		love.graphics.setColor(1, 1, 1)
 
 		if level_text_timer > 0 then
