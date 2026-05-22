@@ -8,22 +8,20 @@ char = {
 	x = 800, y = 800,
 	speed = 220,
 
-	kb_x = 0, kb_y = 0,
-}
+	kb_x = 0, kb_y = 0,}
 
 gate = {
 	x = 1150, y = 1170,
-	w = 300, h = 50,
-}
+	w = 300, h = 50,}
 
 local buttons = {
 	menu_state = {},
 	levels = {},
 	run_state = {},
 	pause_state = {},
-	end_state = {},
-}
+	end_state = {},}
 
+-- states
 game = {	
 	state = {
 		menu = true,
@@ -31,35 +29,30 @@ game = {
 		running = false,
 		ended = false,
 		won = false,
-	}
-}
+	}}
 
 blocks = {
 	{x = 180, y = 200, w = 600, h = 340},
 	{x = 120, y = 1400, w = 330, h = 320},
-	{x = 2050, y = 150, w = 250, h = 200},
-}
+	{x = 2050, y = 150, w = 250, h = 200},}
 
 camera = {
 	x = 0, y = 0,
 	shake_time = 0, shake_intensity = 0,
-	offset_x = 0, offset_y = 0,
-}
+	offset_x = 0, offset_y = 0,}
 
 levels = {
 	[1] = {carrot_req = 5, enemy_count = 1, target_score = 40, },
 	[2] = {carrot_req = 6, enemy_count = 2, target_score = 80, },
 	[3] = {carrot_req = 7, enemy_count = 3, target_score = 120, },
-	[4] = {carrot_req = 10, enemy_count = 5, target_score = 180,},
-}
+	[4] = {carrot_req = 10, enemy_count = 5, target_score = 180,},}
 
 level_text = ""
 level_text_timer = 0
 sound_played = false
-
+last_second = 0
+current_level = 1
 carrots, enemies, time, eaten_carrots, score = {}, {}, 0, 0, 0
-
-final_level = #levels
 
 function changeState(state)
 	game.state["running"] = state == "running"
@@ -71,10 +64,8 @@ function changeState(state)
 end
 
 function reachedGate()
-	return char.x < gate.x + gate.w and
-	      char.x + char.width > gate.x and
-	      char.y < gate.y + gate.h and
-	      char.y + char.height > gate.y
+	return char.x < gate.x + gate.w and char.x + char.width > gate.x and
+	      char.y < gate.y + gate.h and char.y + char.height > gate.y
 end
 
 function resetGame()
@@ -101,10 +92,7 @@ function resetGame()
 
 end
 
-last_second = 0
-
 function shake(time, intensity)
-
 	camera.shake_time = time
 	camera.shake_intensity = intensity
 end
@@ -115,8 +103,7 @@ function loadLevel(level)
 	char.kb_x = 0
 	char.kb_y = 0
 
-	level_text = "collect "..levels[level].carrot_req..
-             " carrots & reach "..levels[level].target_score.." score"
+	level_text = "collect "..levels[level].carrot_req.." carrots & reach "..levels[level].target_score.." score"
 
 	level_text_timer = 3
 	char.x, char.y = 800, 800
@@ -131,11 +118,8 @@ function loadLevel(level)
 end
 
 function collision(x1, y1, w1, h1, x2, y2, w2, h2)
-    return x1 < x2 + w2 and x1 + w1 > x2 and
-           y1 < y2 + h2 and y1 + h1 > y2
+    return x1 < x2 + w2 and x1 + w1 > x2 and y1 < y2 + h2 and y1 + h1 > y2
 end
-
-current_level = 1
 
 function love.mousepressed(x, y, button)
 	if button == 1 then
@@ -167,6 +151,11 @@ function love.mousepressed(x, y, button)
         	resetGame()
         	changeState("menu")
       end
+
+      if buttons.menu_state.exit:hovering(x, y) then
+      	resetGame()
+      	love.event.quit()
+      end
    end
 end
 
@@ -182,7 +171,9 @@ end
 function love.load()
 
 	hit_timer, heart = 0, 3
-	run_bg = love.graphics.newImage("gfx/game-4.png") -- game-2.png
+
+	-- art
+	run_bg = love.graphics.newImage("gfx/game-4.png") 
 	menu_bg = love.graphics.newImage("gfx/menu-2.png")
 	char.sprite = love.graphics.newImage("gfx/blue-2.png")
 	heart_pic = love.graphics.newImage("gfx/heart.png")
@@ -191,6 +182,7 @@ function love.load()
 	world_w = run_bg:getWidth()
 	world_h = run_bg:getHeight()
 
+	-- sfx
 	eat_sound = love.audio.newSource("sfx/eat-carrot.mp3", "static")
 	lost_heart_sound = love.audio.newSource("sfx/lost-heart-2.mp3", "static") -- or lost-heart.wav
 	game_over_sound = love.audio.newSource("sfx/game-over.mp3", "static")
@@ -202,11 +194,9 @@ function love.load()
 
 	love.audio.setVolume(0.2)
 
-
+	-- fonts
 	a = "fonts/font-12.ttf"
-	font1 = love.graphics.newFont(a, 40)
-	font2 = love.graphics.newFont(a, 60)
-	font3 = love.graphics.newFont(a, 80)
+	font1, font2, font3 = love.graphics.newFont(a, 40), love.graphics.newFont(a, 60), love.graphics.newFont(a, 80)
 	font4 = love.graphics.newFont(a, 110)
 
 	buttons.menu_state.play = button("PLAY", nil, nil, 150, 90)
@@ -224,132 +214,56 @@ end
 
 function love.update(dt)
 
-	
-
 	camera.x = char.x + char.width/2 - 750
 	camera.y = char.y + char.height/2 - 550
 
 	camera.x = math.max(0, math.min(camera.x, world_w - 1500))
-
-	camera.y = math.max(0, math.min(camera.y, world_h - 1100))
+	camera.y = math.max(0, math.min(camera.y, world_h - 1200))
 
 	if camera.shake_time > 0 then
 		camera.shake_time = camera.shake_time - dt
 
 		camera.offset_x = love.math.random(-camera.shake_intensity, camera.shake_intensity)
 		camera.offset_y = love.math.random(-camera.shake_intensity, camera.shake_intensity )
-	else
-		camera.offset_x = 0
-		camera.offset_y = 0
-	end
 
-	if level_text_timer > 0 then
-		level_text_timer = level_text_timer - dt
-	end
+	else camera.offset_x, camera.offset_y = 0, 0 end
+
+	-- mission text thingy
+	if level_text_timer > 0 then level_text_timer = level_text_timer - dt end
 
 	time, hit_timer = time + dt, hit_timer - dt
-
 	mouse_x, mouse_y = love.mouse.getPosition()
-
 	current_second = math.floor(time)
 
-	if started == true and current_second ~= last_second and game.state["running"] then
-		last_second = current_second
-
-    	if current_second % 1 == 0 then
-       		score = score + 1
-   		end
+	-- weird score seyi
+	if started == true and current_second ~= last_second and game.state["running"] then last_second = current_second
+    	if current_second % 1 == 0 then score = score + 1 end
 	end
+
+	-- knockback friction mrictionli
+	char.kb_x = char.kb_x * (1 - 8 * dt)
+	char.kb_y = char.kb_y * (1 - 8 * dt)
 
 	char.x = char.x + char.kb_x * dt
 	char.y = char.y + char.kb_y * dt
 
-	char.kb_x = char.kb_x * (1 - 8 * dt)
-	char.kb_y = char.kb_y * (1 - 8 * dt)
+	dx, dy = 0, 0
+   if love.keyboard.isDown("d") then dx = dx + 1 end
+   if love.keyboard.isDown("w") then dy = dy - 1 end
+   if love.keyboard.isDown("s") then dy = dy + 1 end
 
-	--[[char move
-	if game.state["running"] then
-		if love.keyboard.isDown("w") or love.keyboard.isDown("up") then
-			char.y = char.y - char.speed * dt
-			if love.keyboard.isDown("space") then
-				love.audio.play(dash_sound)
-				char.y = char.y - 5 * char.speed * dt
-			end
-		end
-		if love.keyboard.isDown("s") or love.keyboard.isDown("down") then
-			char.y = char.y + char.speed*dt
-			if love.keyboard.isDown("space") then
-				love.audio.play(dash_sound)
-				char.y = char.y + 5 * char.speed * dt
-			end
-		end
-		if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
-			char.x = char.x - char.speed * dt
-			if love.keyboard.isDown("space") then
-				love.audio.play(dash_sound)
-				char.x = char.x - 5 * char.speed * dt
-			end
-		end
-		if love.keyboard.isDown("d") or love.keyboard.isDown("right") then
-			char.x = char.x + char.speed * dt
-			if love.keyboard.isDown("space") then
-				love.audio.play(dash_sound)
-				char.x = char.x + 5 * char.speed * dt
-			end
+	speed = char.speed
 
-		end --]]
+   if love.keyboard.isDown("space") then
+      speed = speed * 6
+      love.audio.play(dash_sound)
+   end
 
+	newX = char.x + dx * speed * dt
+   newY = char.y + dy * speed * dt
 
-	if game.state["running"] then
-   	dx, dy = 0, 0
-
-    	if love.keyboard.isDown("a") then 
-    		dx = dx - 1 
-    		--[[if love.keyboard.isDown("space") then
-				love.audio.play(dash_sound)
-				newX = char.x - 5 * char.speed * dt
-			end--]]
-    	end
-    	if love.keyboard.isDown("d") then 
-    		dx = dx + 1 
-    		--[[if love.keyboard.isDown("space") then
-				love.audio.play(dash_sound)
-				newX = char.x + 5 * char.speed * dt
-			end]]--
-    	end
-    	if love.keyboard.isDown("w") then 
-    		dy = dy - 1 
-    		--[[if love.keyboard.isDown("space") then
-				love.audio.play(dash_sound)
-    			newY = char.y - dy * char.speed * 5 * dt
-			end --]]
-    	end
-    	if love.keyboard.isDown("s") then 
-    		dy = dy + 1
-    		--[[if love.keyboard.isDown("space") then
-				love.audio.play(dash_sound)
-    			newY = char.y - dy * char.speed * 5 * dt
-			end --]]
-		end
-
-		speed = char.speed
-
-    	if love.keyboard.isDown("space") then
-        speed = speed * 6
-        love.audio.play(dash_sound)
-    	end
-
-		newX = char.x + dx * speed * dt
-    	newY = char.y + dy * speed * dt
-
-    	if canMove(newX, char.y) then
-        char.x = newX
-    	end
-
-    	if canMove(char.x, newY) then
-        char.y = newY
-    	end
-	end
+   if canMove(newX, char.y) then char.x = newX end
+   if canMove(char.x, newY) then char.y = newY end
 
 	-- enemies de move 
 	if game.state["running"] then
