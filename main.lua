@@ -436,7 +436,7 @@ function love.draw()
 			love.graphics.printf(score .."? seriously? bruh.", 300, 280, 900, "center"  )
 		end
 
-		if score <= 20 and score >= 0 then
+		if score <= 20 and score > 0 then
 			love.graphics.printf("tragic", 300, 280, 900, "center")
 		end
 
@@ -489,5 +489,5 @@ function love.draw()
 		love.graphics.setColor(1, 1, 1)
 		love.graphics.printf("sound: ", 400, 400, 600, "center")
 	end
-
+	
 end
