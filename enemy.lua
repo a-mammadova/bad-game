@@ -7,7 +7,7 @@ function enemy()
 		y= math.random(20, 20) * 80,
 		w = 151,
 		h = 100,
-		speed = math.random (20, 32) * 20,
+		speed = 0, --math.random (20, 32) * 20,
 
 		move = function(self, charx, chary, dt)
 			

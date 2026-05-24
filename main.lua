@@ -18,7 +18,8 @@ local buttons = {
 	levels = {},
 	run_state = {},
 	pause_state = {},
-	end_state = {},}
+	end_state = {},
+	settings_state = {}, }
 
 -- states
 game = {	
@@ -52,6 +53,8 @@ sound_played = false
 last_second = 0
 current_level = 1
 carrots, enemies, time, eaten_carrots, score = {}, {}, 0, 0, 0
+
+sfx_state = true
 
 function changeState(state)
 	game.state["running"] = state == "running"
@@ -121,38 +124,24 @@ end
 
 function love.mousepressed(x, y, button)
 	if button == 1 then
-      if buttons.menu_state.play:hovering(x, y) then
-        	current_level = 1
-        	loadLevel(current_level)
-         changeState("running")
-      end
+      if buttons.menu_state.play:hovering(x, y) and game.state["menu"] then 
+      	current_level = 1 loadLevel(current_level) changeState("running") end
 
-      if buttons.menu_state.settings:hovering(x, y) then
-      	changeState("settings")
-      end
-
-      if buttons.run_state.pause:hovering(x, y) then
-         changeState("paused")
-      end
-
-      if buttons.pause_state.continue:hovering(x, y) then
-        	changeState("running")
-      end
-
+      if buttons.menu_state.settings:hovering(x, y) and game.state["menu"] then changeState("settings") end
+      if buttons.run_state.pause:hovering(x, y) and game.state["running"] then changeState("paused") end
+      if buttons.pause_state.continue:hovering(x, y) and game.state["paused"] then changeState("running") end
       if buttons.pause_state.replay:hovering(x, y) or buttons.end_state.restart:hovering(x, y) then
         	resetGame()
         	changeState("running")
       end
 
-      if buttons.end_state.menu:hovering(x, y) then
-        	resetGame()
-        	changeState("menu")
-      end
-
-      if buttons.menu_state.exit:hovering(x, y) then
-      	resetGame()
-      	love.event.quit()
-      end
+      if buttons.end_state.menu:hovering(x, y) then resetGame() changeState("menu") end
+      if buttons.menu_state.exit:hovering(x, y) then love.event.quit() end
+      if buttons.settings_state.back:hovering(x, y) then changeState("menu") end
+      if buttons.settings_state.sfx:hovering(x, y) then sfx_state = not sfx_state
+      	if sfx_state then love.audio.setVolume(0.2)
+			else love.audio.setVolume(0) end
+		end
    end
 end
 
@@ -189,21 +178,21 @@ function love.load()
 	dash_sound = love.audio.newSource("sfx/dash-1.mp3", "static") -- or dash-2.mp3
 	kb_sound = love.audio.newSource("sfx/knockback.mp3", "static")
 
-	love.audio.setVolume(0.2)
-
 	-- fonts
 	a = "fonts/font-12.ttf"
 	font1, font2, font3 = love.graphics.newFont(a, 40), love.graphics.newFont(a, 60), love.graphics.newFont(a, 80)
 	font4 = love.graphics.newFont(a, 110)
 
 	buttons.menu_state.play = button("PLAY", nil, nil, 150, 90)
-	buttons.menu_state.settings = button("SETTINGS", nil, nil, 249, 90)
+	buttons.menu_state.settings = button("SETTINGS", nil, nil, 240, 90)
 	buttons.menu_state.exit = button("EXIT", nil , nil, 140, 90)
 	buttons.run_state.pause = button("II", nil, nil, 70, 90)
 	buttons.pause_state.continue = button("CONTINUE", nil, nil, 250, 80)
 	buttons.pause_state.replay = button("REPLAY", nil, nil, 190, 80)
 	buttons.end_state.restart = button("RESTART", nil, nil, 230, 90)
 	buttons.end_state.menu = button("MENU", nil, nil, 170, 90)
+	buttons.settings_state.back = button("BACK", nil, nil, 170, 90) -- DRAW BACK AND ADD IT TO MOUSEPRESSED SEC
+	buttons.settings_state.sfx = button("SOUND: ON/OFF", nil, nil, 320, 90) -- ADD SFX ON OFF SEC TO SETTINGS
 
 	table.insert(enemies, 1, enemy())
 	table.insert(carrots, 1, carrot())
@@ -274,7 +263,7 @@ function love.update(dt)
 	if game.state["running"] and score < 0 or heart <= 0 then
 		if not death_started then death_started = true shake(1, 10) end
 
-		if death_started == true and camera.shake_time < 0 then
+		if death_started == true and camera.shake_time <= 0 then
 			if not sound_played then love.audio.play(game_over_sound) sound_played = true end
 			changeState("ended")
 			death_started = false
@@ -362,7 +351,7 @@ function love.draw()
 	love.graphics.pop()
 
 	if game.state["running"] then
-		if hit_timer > 0 then
+		if hit_timer >= 0 then
 			love.graphics.setColor(1, 0, 0, math.min(0.3 * level_text_timer, 1))
 			love.graphics.rectangle("fill", 0, 0, 1500, 1200)
 		else
@@ -462,9 +451,20 @@ function love.draw()
 	end
 
 	if game.state["paused"] then
+		love.graphics.setColor(1, 1, 1)
+		love.graphics.draw(over_bg, 0, 0)
 		buttons.pause_state.continue:draw(635, 520, 300, 380)	
 		buttons.pause_state.replay:draw(660, 400, 300, 400)
 		buttons.end_state.menu:draw(665, 640, 200, 400)
+		buttons.settings_state.sfx:draw(600, 760, 100, 90)
+		if sfx_state then
+			love.graphics.setColor(0, 0, 0)
+			love.graphics.rectangle("line", 750, 770, 80, 70, 20, 20)
+		else
+			love.graphics.setColor(0, 0, 0)
+			love.graphics.rectangle("line", 830, 770, 80, 70, 20, 20)
+		end
+
 	end
 
 	if game.state["menu"] then
@@ -473,7 +473,7 @@ function love.draw()
 		love.graphics.setColor(0, 0, 0)
 
 		buttons.menu_state.play:draw(650, 400, 200, 400)
-		buttons.menu_state.settings:draw(615, 550, 300, 400)
+		buttons.menu_state.settings:draw(615, 550, 200, 400)
 		buttons.menu_state.exit:draw(650, 700, 200, 400)
 	end
 
@@ -483,11 +483,19 @@ function love.draw()
 	end
 
 	if game.state["settings"] then
-		-- add sfx on off
-		-- add ctrls
+		love.graphics.setColor(1, 1, 1)
+		love.graphics.draw(over_bg, 0, 0)
+		buttons.settings_state.back:draw(30, 30, 170, 90)
 		love.graphics.setFont(font3)
 		love.graphics.setColor(1, 1, 1)
-		love.graphics.printf("sound: ", 400, 400, 600, "center")
-	end
-	
+		buttons.settings_state.sfx:draw(600, 400, 310, 90)
+
+		if sfx_state then
+			love.graphics.setColor(0, 0, 0)
+			love.graphics.rectangle("line", 750, 410, 80, 70, 20, 20)
+		else
+			love.graphics.setColor(0, 0, 0)
+			love.graphics.rectangle("line", 830, 410, 80, 70, 20, 20)
+		end
+	end	
 end
