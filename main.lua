@@ -138,7 +138,11 @@ function love.mousepressed(x, y, button)
       if buttons.end_state.menu:hovering(x, y) then resetGame() changeState("menu") end
       if buttons.menu_state.exit:hovering(x, y) then love.event.quit() end
       if buttons.settings_state.back:hovering(x, y) then changeState("menu") end
-      if buttons.settings_state.sfx:hovering(x, y) then sfx_state = not sfx_state
+      if buttons.settings_state.sfx:hovering(x, y) and game.state["settings"] then sfx_state = not sfx_state
+      	if sfx_state then love.audio.setVolume(0.2)
+			else love.audio.setVolume(0) end
+		end
+		if buttons.settings_state.sfx:hovering(x, y) and game.state["paused"] then sfx_state = not sfx_state
       	if sfx_state then love.audio.setVolume(0.2)
 			else love.audio.setVolume(0) end
 		end
@@ -234,23 +238,26 @@ function love.update(dt)
 	char.y = char.y + char.kb_y * dt
 
 	dx, dy = 0, 0
-   if love.keyboard.isDown("d") then dx = dx + 1 end
-   if love.keyboard.isDown("w") then dy = dy - 1 end
-   if love.keyboard.isDown("s") then dy = dy + 1 end
-   if love.keyboard.isDown("a") then dx = dx - 1 end
 
-	speed = char.speed
+	if game.state["running"] then
+   	if love.keyboard.isDown("d") then dx = dx + 1 end
+   	if love.keyboard.isDown("w") then dy = dy - 1 end
+   	if love.keyboard.isDown("s") then dy = dy + 1 end
+   	if love.keyboard.isDown("a") then dx = dx - 1 end
 
-   if love.keyboard.isDown("space") then
-      speed = speed * 6
-      love.audio.play(dash_sound)
+		speed = char.speed
+
+   	if love.keyboard.isDown("space") then
+      	speed = speed * 6
+      	love.audio.play(dash_sound)
+   	end
+
+		newX = char.x + dx * speed * dt
+   	newY = char.y + dy * speed * dt
+
+   	if canMove(newX, char.y) then char.x = newX end
+   	if canMove(char.x, newY) then char.y = newY end
    end
-
-	newX = char.x + dx * speed * dt
-   newY = char.y + dy * speed * dt
-
-   if canMove(newX, char.y) then char.x = newX end
-   if canMove(char.x, newY) then char.y = newY end
 
 	-- enemies de move 
 	if game.state["running"] then
@@ -363,6 +370,9 @@ function love.draw()
 		--love.graphics.rectangle("line", -2, -5, 1504, 114, 20, 20)
 		love.graphics.setColor(33/255, 12/255, 66/255, 0.3)
 		love.graphics.rectangle("fill", 0, 0, 1500, 110, 20, 20)
+		love.graphics.setColor(0, 0, 0)
+		love.graphics.setFont(font2)
+		love.graphics.printf(eaten_carrots.."/"..levels[current_level].carrot_req, 800, 30, 300, "center")
 		love.graphics.setColor(1, 1, 1)
 
 		-- SCORE
